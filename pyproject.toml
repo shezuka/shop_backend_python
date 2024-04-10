@@ -10,6 +10,9 @@ python = "^3.12"
 fastapi = "^0.110.1"
 uvicorn = {extras = ["standart"], version = "^0.29.0"}
 sqlalchemy = "^2.0.29"
+pydantic = "^2.6.4"
+psycopg2-binary = "^2.9.9"
+passlib = {extras = ["bcrypt"], version = "^1.7.4"}
 
 
 [build-system]
