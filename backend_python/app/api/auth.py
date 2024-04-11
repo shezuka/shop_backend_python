@@ -17,11 +17,7 @@ auth_router = APIRouter()
 @auth_router.post("/login", status_code=200)
 async def login(login_req: RequestLogin, response: Response, db: Session = Depends(get_db)):
     user = db.query(UserModel).filter(UserModel.username == login_req.username).first()
-    if user is None:
-        response.status_code = 400
-        return {"message": "invalid credentials"}
-
-    if not verify_password(login_req.password, user.encrypted_password):
+    if user is None or not verify_password(login_req.password, user.encrypted_password):
         response.status_code = 400
         return {"message": "invalid credentials"}
 
