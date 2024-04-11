@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, Response, Body
 from sqlalchemy.orm import Session
 
 from backend_python.app.dependencies import get_db
@@ -6,6 +6,7 @@ from backend_python.app.helpers.password import hash_password, verify_password
 from backend_python.app.helpers.random import generate_random_string
 from backend_python.app.requests.request_login import RequestLogin
 from backend_python.app.requests.request_register import RequestRegister
+from backend_python.app.requests.request_validate_token import RequestValidateToken
 from backend_python.app.response.response_access_token import ResponseAccessToken
 from backend_python.app.response.response_user import ResponseUser
 from backend_python.database import UserModel, AccessTokenModel
@@ -18,11 +19,11 @@ async def login(login_req: RequestLogin, response: Response, db: Session = Depen
     user = db.query(UserModel).filter(UserModel.username == login_req.username).first()
     if user is None:
         response.status_code = 400
-        return {"message": "username does not exist"}
+        return {"message": "invalid credentials"}
 
     if not verify_password(login_req.password, user.encrypted_password):
         response.status_code = 400
-        return {"message": "invalid password"}
+        return {"message": "invalid credentials"}
 
     token = generate_random_string()
     access_token = AccessTokenModel(user_id=user.id, key=token)
@@ -46,3 +47,13 @@ async def register(register_req: RequestRegister, response: Response, db: Sessio
     db.commit()
     db.refresh(new_user)
     return ResponseUser.from_orm(new_user)
+
+
+@auth_router.post("/validate_token", status_code=200)
+async def validate_token(response: Response, token_req: RequestValidateToken, db: Session = Depends(get_db)):
+    access_token = db.query(AccessTokenModel).filter(AccessTokenModel.key == token_req.token).first()
+    if access_token is None:
+        response.status_code = 400
+        return {"message": "invalid token"}
+
+    return {}
