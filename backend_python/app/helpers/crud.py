@@ -79,21 +79,22 @@ def make_crud_router(router: APIRouter,
         if is_admin_only:
             await require_current_admin_user(current_user)
 
+        other_item = handler.create_uniqueness_query(db, req).filter(DatabaseModel.id != id).first()
+        if other_item is not None:
+            response.status_code = 400
+            return {"message": "such item already exists"}
+
         item = db.query(DatabaseModel).filter(DatabaseModel.id == id).first()
         if item is None:
             response.status_code = 404
             return {"message": "item not found"}
 
-        old_item = handler.create_uniqueness_query(db, req).filter(DatabaseModel.id != id).first()
-        if old_item is not None:
-            response.status_code = 400
-            return {"message": "such item already exists"}
-
-        item.update(**req.dict())
+        for key, value in req.dict().items():
+            setattr(item, key, value)
+        db.add(item)
         db.commit()
         db.refresh(item)
         return ResponseModel.from_orm(item)
-
 
     @router.delete("/{id}")
     async def delete_query(
