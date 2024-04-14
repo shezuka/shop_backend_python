@@ -1,3 +1,5 @@
+import datetime
+
 from pydantic import BaseModel
 
 
@@ -7,6 +9,10 @@ class ResponseModelBase(BaseModel):
 
 class ResponseModelOrmBase(ResponseModelBase):
     __abstract__ = True
+
+    id: int
+    created_at: datetime.datetime
+    updated_at: datetime.datetime
 
     class Config:
         use_orm = True
