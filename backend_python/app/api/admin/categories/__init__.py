@@ -8,7 +8,8 @@ from backend_python.app.response.response_category import ResponseCategory
 from backend_python.database.category_model import CategoryModel
 
 
-class CategoriesCrudHandler(CrudHandlerBase[CategoryModel]):
+class CategoriesCrudHandler(CrudHandlerBase):
+    DatabaseModel = CategoryModel
 
     def create_uniqueness_query(self, db: Session, req_data: any) -> sqlalchemy.orm.Query | None:
         return db.query(CategoryModel).filter(
