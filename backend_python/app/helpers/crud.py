@@ -99,11 +99,11 @@ def make_crud_router(router: APIRouter,
     @router.delete("/{id}")
     async def delete_query(
             id: int,
-            response: Response,
             db: Session = Depends(get_db),
             current_user=Depends(get_current_user)
     ):
         if is_admin_only:
             await require_current_admin_user(current_user)
         db.query(DatabaseModel).filter(DatabaseModel.id == id).delete()
+        db.commit()
         return {"message": "item deleted"}
