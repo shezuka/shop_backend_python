@@ -53,11 +53,11 @@ def make_crud_router(router: APIRouter,
 
     @router.get("")
     async def get_query(
-            q: Optional[str],
             request: Request,
             response: Response,
             offset: int = 0,
             limit: int = 10,
+            q: Optional[str] = None,
             db: Session = Depends(get_db),
             current_user=Depends(get_current_user)
     ):
