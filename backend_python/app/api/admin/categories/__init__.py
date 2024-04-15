@@ -24,6 +24,7 @@ make_crud_router(
     ResponseCategory,
     CategoryModel,
     RequestCreateCategory,
+    RequestCreateCategory,
     CategoriesCrudHandler(),
     is_admin_only=True
 )
