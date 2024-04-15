@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from backend_python.app.helpers.crud import CrudHandlerBase, make_crud_router
 from backend_python.app.requests.request_create_category import RequestCreateCategory
 from backend_python.app.response.response_category import ResponseCategory
-from backend_python.database.category_model import CategoryModel
+from backend_python.database import CategoryModel
 
 
 class CategoriesCrudHandler(CrudHandlerBase):
