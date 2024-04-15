@@ -26,5 +26,6 @@ make_crud_router(
     RequestCreateCategory,
     RequestCreateCategory,
     CategoriesCrudHandler(),
+    search_query_field="title",
     is_admin_only=True
 )

@@ -1,12 +1,12 @@
-from typing import Type
+from typing import Type, Optional
 
 import sqlalchemy
-from fastapi import APIRouter, Response, Depends, HTTPException
+from fastapi import APIRouter, Response, Depends, HTTPException, Request
 from pydantic import parse_obj_as
 from sqlalchemy.orm import Session
-from sqlalchemy.sql.functions import current_user
 
 from backend_python.app.dependencies import get_db
+from backend_python.app.dependencies.query import get_query_array_int
 from backend_python.app.dependencies.user import get_current_user, require_current_admin_user
 from backend_python.app.requests.request_model_base import RequestModelBase
 from backend_python.app.response.response_model_base import ResponseModelOrmBase
@@ -30,6 +30,7 @@ def make_crud_router(router: APIRouter,
                      create_request_model: Type[RequestModelBase],
                      edit_request_model: Type[RequestModelBase],
                      handler: CrudHandlerBase,
+                     search_query_field: str = None,
                      is_admin_only: bool = False):
     @router.post("")
     async def create_query(req: create_request_model,
@@ -52,6 +53,8 @@ def make_crud_router(router: APIRouter,
 
     @router.get("")
     async def get_query(
+            q: Optional[str],
+            request: Request,
             response: Response,
             offset: int = 0,
             limit: int = 10,
@@ -61,8 +64,15 @@ def make_crud_router(router: APIRouter,
         if is_admin_only:
             await require_current_admin_user(current_user)
 
+        except_ids = get_query_array_int(request, "except_ids")
+
         base_query = db.query(database_model)
-        categories = base_query.order_by(database_model.id.desc()).limit(limit).offset(offset).all()
+        query = base_query.order_by(database_model.id.desc())
+        if search_query_field is not None and q is not None:
+            query = query.filter(getattr(database_model, search_query_field).like('%{}%'.format(q)))
+        if except_ids is not None and len(except_ids) > 0:
+            query = query.filter(database_model.id.notin_(except_ids))
+        categories = query.limit(limit).offset(offset).all()
         total_count = base_query.count()
         response.headers["X-Total-Count"] = str(total_count)
         return parse_obj_as(list[response_model], categories)

@@ -23,5 +23,6 @@ make_crud_router(
     RequestCreateCompany,
     RequestCreateCompany,
     CompaniesCrudHandler(),
+    search_query_field="name",
     is_admin_only=True
 )
