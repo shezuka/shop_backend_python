@@ -23,6 +23,12 @@ class CrudHandlerBase:
     RequestEditModel: Type[RequestModelBase]
     ResponseModel: Type[ResponseModelOrmBase]
 
+    get_api = True
+    get_single_api = True
+    create_api = True
+    edit_api = True
+    delete_api = True
+
     def __init__(self, current_user: UserModel = None, req_data: RequestModelBase = None, db: Session = None):
         self.current_user: UserModel = current_user
         self.req_data: RequestModelBase = req_data
@@ -37,112 +43,113 @@ class CrudHandlerBase:
 
 def make_crud_router(router: APIRouter,
                      handler_class: Type[CrudHandlerBase]):
-    @router.post("")
-    async def create_query(req: handler_class.RequestCreateModel,
-                           response: Response,
-                           db: Session = Depends(get_db),
-                           current_user=Depends(get_current_user)):
-        if handler_class.is_admin_only:
-            await require_current_admin_user(current_user)
+    if handler_class.create_api:
+        @router.post("")
+        async def create_query(req: handler_class.RequestCreateModel,
+                               response: Response,
+                               db: Session = Depends(get_db),
+                               current_user=Depends(get_current_user)):
+            if handler_class.is_admin_only:
+                await require_current_admin_user(current_user)
 
-        handler = handler_class(
-            current_user=current_user,
-            req_data=req,
-            db=db
-        )
-
-        old_item = handler.create_uniqueness_query().first()
-        if old_item is not None:
-            response.status_code = 400
-            return {"message": "such item already exists"}
-
-        new_item = handler.create_new_model_instance()
-        db.add(new_item)
-        db.commit()
-        db.refresh(new_item)
-        return handler.ResponseModel.from_orm(new_item)
-
-    @router.get("")
-    async def get_query(
-            request: Request,
-            response: Response,
-            offset: int = 0,
-            limit: int = 10,
-            q: Optional[str] = None,
-            db: Session = Depends(get_db),
-            current_user=Depends(get_current_user)
-    ):
-        if handler_class.is_admin_only:
-            await require_current_admin_user(current_user)
-
-        handler = handler_class(
-            current_user=current_user,
-            db=db
-        )
-        except_ids = get_query_array_int(request, "except_ids")
-
-        base_query = db.query(handler_class.DatabaseModel)
-        query = base_query.order_by(handler_class.DatabaseModel.id.desc())
-        if handler_class.search_query_field is not None and q is not None:
-            query = query.filter(
-                sqlalchemy.func.lower(getattr(handler_class.DatabaseModel, handler_class.search_query_field))
-                .like('%{}%'.format(q.lower()))
+            handler = handler_class(
+                current_user=current_user,
+                req_data=req,
+                db=db
             )
-        if except_ids is not None and len(except_ids) > 0:
-            query = query.filter(handler_class.DatabaseModel.id.notin_(except_ids))
-        categories = query.limit(limit).offset(offset).all()
-        total_count = base_query.count()
-        response.headers["X-Total-Count"] = str(total_count)
-        return parse_obj_as(list[handler_class.ResponseModel], categories)
 
-    @router.get("/{id}")
-    async def get_one_query(id: int, db: Session = Depends(get_db)):
-        item = db.query(handler_class.DatabaseModel).filter(handler_class.DatabaseModel.id == id).first()
-        if item is None:
-            raise HTTPException(status_code=404, detail="item not found")
-        return handler_class.ResponseModel.from_orm(item)
+            old_item = handler.create_uniqueness_query().first()
+            if old_item is not None:
+                response.status_code = 400
+                return {"message": "such item already exists"}
 
-    @router.put("/{id}")
-    async def update_query(
-            id: int,
-            req: handler_class.RequestEditModel,
-            response: Response,
-            db: Session = Depends(get_db),
-            current_user=Depends(get_current_user)
-    ):
-        if handler_class.is_admin_only:
-            await require_current_admin_user(current_user)
+            new_item = handler.create_new_model_instance()
+            db.add(new_item)
+            db.commit()
+            db.refresh(new_item)
+            return handler.ResponseModel.from_orm(new_item)
 
-        handler = handler_class(
-            current_user=current_user,
-            req_data=req,
-            db=db
-        )
-        other_item = handler.create_uniqueness_query().filter(handler_class.DatabaseModel.id != id).first()
-        if other_item is not None:
-            response.status_code = 400
-            return {"message": "such item already exists"}
+    if handler_class.get_api:
+        @router.get("")
+        async def get_query(
+                request: Request,
+                response: Response,
+                offset: int = 0,
+                limit: int = 10,
+                q: Optional[str] = None,
+                db: Session = Depends(get_db),
+                current_user=Depends(get_current_user)
+        ):
+            if handler_class.is_admin_only:
+                await require_current_admin_user(current_user)
 
-        item = db.query(handler_class.DatabaseModel).filter(handler_class.DatabaseModel.id == id).first()
-        if item is None:
-            response.status_code = 404
-            return {"message": "item not found"}
+            except_ids = get_query_array_int(request, "except_ids")
 
-        for key, value in req.dict().items():
-            setattr(item, key, value)
-        db.add(item)
-        db.commit()
-        db.refresh(item)
-        return handler_class.ResponseModel.from_orm(item)
+            base_query = db.query(handler_class.DatabaseModel)
+            query = base_query.order_by(handler_class.DatabaseModel.id.desc())
+            if handler_class.search_query_field is not None and q is not None:
+                query = query.filter(
+                    sqlalchemy.func.lower(getattr(handler_class.DatabaseModel, handler_class.search_query_field))
+                    .like('%{}%'.format(q.lower()))
+                )
+            if except_ids is not None and len(except_ids) > 0:
+                query = query.filter(handler_class.DatabaseModel.id.notin_(except_ids))
+            categories = query.limit(limit).offset(offset).all()
+            total_count = base_query.count()
+            response.headers["X-Total-Count"] = str(total_count)
+            return parse_obj_as(list[handler_class.ResponseModel], categories)
 
-    @router.delete("/{id}")
-    async def delete_query(
-            id: int,
-            db: Session = Depends(get_db),
-            current_user=Depends(get_current_user)
-    ):
-        if handler_class.is_admin_only:
-            await require_current_admin_user(current_user)
-        db.query(handler_class.DatabaseModel).filter(handler_class.DatabaseModel.id == id).delete()
-        db.commit()
-        return {"message": "item deleted"}
+    if handler_class.get_single_api:
+        @router.get("/{id}")
+        async def get_one_query(id: int, db: Session = Depends(get_db)):
+            item = db.query(handler_class.DatabaseModel).filter(handler_class.DatabaseModel.id == id).first()
+            if item is None:
+                raise HTTPException(status_code=404, detail="item not found")
+            return handler_class.ResponseModel.from_orm(item)
+
+    if handler_class.edit_api:
+        @router.put("/{id}")
+        async def update_query(
+                id: int,
+                req: handler_class.RequestEditModel,
+                response: Response,
+                db: Session = Depends(get_db),
+                current_user=Depends(get_current_user)
+        ):
+            if handler_class.is_admin_only:
+                await require_current_admin_user(current_user)
+
+            handler = handler_class(
+                current_user=current_user,
+                req_data=req,
+                db=db
+            )
+            other_item = handler.create_uniqueness_query().filter(handler_class.DatabaseModel.id != id).first()
+            if other_item is not None:
+                response.status_code = 400
+                return {"message": "such item already exists"}
+
+            item = db.query(handler_class.DatabaseModel).filter(handler_class.DatabaseModel.id == id).first()
+            if item is None:
+                response.status_code = 404
+                return {"message": "item not found"}
+
+            for key, value in req.dict().items():
+                setattr(item, key, value)
+            db.add(item)
+            db.commit()
+            db.refresh(item)
+            return handler_class.ResponseModel.from_orm(item)
+
+    if handler_class.delete_api:
+        @router.delete("/{id}")
+        async def delete_query(
+                id: int,
+                db: Session = Depends(get_db),
+                current_user=Depends(get_current_user)
+        ):
+            if handler_class.is_admin_only:
+                await require_current_admin_user(current_user)
+            db.query(handler_class.DatabaseModel).filter(handler_class.DatabaseModel.id == id).delete()
+            db.commit()
+            return {"message": "item deleted"}
