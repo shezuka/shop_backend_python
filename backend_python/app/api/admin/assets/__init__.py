@@ -3,10 +3,27 @@ from sqlalchemy.orm import Session
 
 from backend_python.app.dependencies import get_db
 from backend_python.app.dependencies.user import require_current_admin_user
+from backend_python.app.helpers.crud import CrudHandlerBase, make_crud_router
 from backend_python.app.helpers.random import generate_random_string
+from backend_python.app.response.response_asset import ResponseAsset
 from backend_python.database import UserModel, AssetUploadKeyModel, AssetModel
 
 admin_assets_router = APIRouter()
+
+
+class AssetCrudHandler(CrudHandlerBase):
+    DatabaseModel = AssetModel
+    RequestCreateModel = None
+    RequestEditModel = None
+    ResponseModel = ResponseAsset
+    is_admin_only = True
+    search_query_field = None
+
+
+make_crud_router(
+    admin_assets_router,
+    AssetCrudHandler
+)
 
 
 @admin_assets_router.get("/upload-link")
