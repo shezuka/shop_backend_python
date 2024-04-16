@@ -84,7 +84,10 @@ def make_crud_router(router: APIRouter,
         base_query = db.query(handler_class.DatabaseModel)
         query = base_query.order_by(handler_class.DatabaseModel.id.desc())
         if handler_class.search_query_field is not None and q is not None:
-            query = query.filter(getattr(handler_class.DatabaseModel, handler_class.search_query_field).like('%{}%'.format(q)))
+            query = query.filter(
+                sqlalchemy.func.lower(getattr(handler_class.DatabaseModel, handler_class.search_query_field))
+                .like('%{}%'.format(q.lower()))
+            )
         if except_ids is not None and len(except_ids) > 0:
             query = query.filter(handler_class.DatabaseModel.id.notin_(except_ids))
         categories = query.limit(limit).offset(offset).all()
