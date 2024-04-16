@@ -10,22 +10,21 @@ from backend_python.database import CategoryModel
 
 class CategoriesCrudHandler(CrudHandlerBase):
     DatabaseModel = CategoryModel
+    RequestCreateModel = RequestCreateCategory
+    RequestEditModel = RequestCreateModel
+    ResponseModel = ResponseCategory
+    is_admin_only = True
+    search_query_field = "title"
 
-    def create_uniqueness_query(self, db: Session, req_data: any) -> sqlalchemy.orm.Query | None:
-        return db.query(CategoryModel).filter(
-            CategoryModel.title == req_data.title,
-            CategoryModel.parent_category_id == req_data.parent_category_id
+    def create_uniqueness_query(self) -> sqlalchemy.orm.Query | None:
+        return self.db.query(CategoryModel).filter(
+            CategoryModel.title == self.req_data.title,
+            CategoryModel.parent_category_id == self.req_data.parent_category_id
         )
 
 
 admin_categories_router = APIRouter()
 make_crud_router(
     admin_categories_router,
-    ResponseCategory,
-    CategoryModel,
-    RequestCreateCategory,
-    RequestCreateCategory,
-    CategoriesCrudHandler(),
-    search_query_field="title",
-    is_admin_only=True
+    CategoriesCrudHandler
 )
