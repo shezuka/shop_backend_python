@@ -4,3 +4,4 @@ from .access_token_model import AccessTokenModel
 from .asset_model import AssetModel
 from .asset_upload_key_model import AssetUploadKeyModel
 from .company_model import CompanyModel
+from .product_model import ProductModel

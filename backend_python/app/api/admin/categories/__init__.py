@@ -11,7 +11,7 @@ from backend_python.database import CategoryModel
 class CategoriesCrudHandler(CrudHandlerBase):
     DatabaseModel = CategoryModel
     RequestCreateModel = RequestCreateCategory
-    RequestEditModel = RequestCreateModel
+    RequestEditModel = RequestCreateCategory
     ResponseModel = ResponseCategory
     is_admin_only = True
     search_query_field = "title"

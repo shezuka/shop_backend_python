@@ -11,7 +11,7 @@ from backend_python.database import CompanyModel
 class CompaniesCrudHandler(CrudHandlerBase):
     DatabaseModel = CompanyModel
     RequestCreateModel = RequestCreateCompany
-    RequestEditModel = RequestCreateModel
+    RequestEditModel = RequestCreateCompany
     ResponseModel = ResponseCompany
     is_admin_only = True
     search_query_field = "name"
